@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<ProxyEndpoint name="CardCapture">
+   <Description>Card Capture</Description>
+   <FaultRules>
+      <FaultRule name="SecurityFaultHandling">
+         <Step>
+            <Name>SF-SecurityFaultCallout</Name>
+         </Step>
+         <Condition>((oauthV2.VerifyAccessToken.failed equals true) or ((oauthV2.VerifyAPIKey.failed equals true) or (BasicAuthentication.DecodeBasicAuthentication.failed equals true) or (acl.AccessControl.failed equals true) or (oauthV2.failed equals true) or (authFlag equals false) or (isValidToken equals false)))</Condition>
+      </FaultRule>
+      <FaultRule name="TrafficManagementFaultHandling">
+         <Step>
+            <Name>SF-TrafficManagementFault</Name>
+         </Step>
+         <Condition>((ratelimit.SpikeArrest.failed equals true) or ((ratelimit.QuotaAtProductLevel.failed equals true)))</Condition>
+      </FaultRule>
+      <FaultRule name="ThreatFaultHandling">
+         <Step>
+            <Name>SF-ThreatFault</Name>
+         </Step>
+         <Condition>((jsonattack.cf-JSONThreatProtection.DoSAEvaluation.failed equals true) or (threatProtectionEvaluationStatus == "failed"))</Condition>
+      </FaultRule>
+   </FaultRules>
+   <DefaultFaultRule name="All">
+      <AlwaysEnforce>true</AlwaysEnforce>
+      <Step>
+         <Name>SF-DefaultFaultCallout</Name>
+      </Step>
+      <AlwaysEnforce>true</AlwaysEnforce>
+   </DefaultFaultRule>
+   <PreFlow name="PreFlow">
+      <Request>
+         <Step>
+            <Name>cf-set-log-variables</Name>
+         </Step>
+         <Step>
+            <Condition>(log.proxyVerb != "OPTIONS")</Condition>
+            <Name>cf-Generate-Message-Correlation-ID</Name>
+         </Step>
+         <Step>
+            <Name>SF-Log-Preflow-Request</Name>
+         </Step>
+         <Step>
+            <Condition>(request.header.x-auth-key equals null) and (log.proxyVerb != "OPTIONS")</Condition>
+            <Name>cf-data-validation-Authorization</Name>
+         </Step>
+         <Step>
+            <Condition>(log.proxyVerb != "OPTIONS")</Condition>
+            <Name>SF-SpikeArrestCallout-Environment</Name>
+         </Step>
+         <Step>
+            <Condition>(log.proxyVerb != "OPTIONS") and (request.header.Content-Length != 0)</Condition>
+            <Name>SF-JSONThreatValidation</Name>
+         </Step>
+         <Step>
+            <Condition>(log.proxyVerb != "OPTIONS")</Condition>
+            <Name>SF-ThreatProtection</Name>
+         </Step>
+         <Step>
+            <Name>SF-Header-Tracing</Name>
+         </Step>
+      </Request>
+      <Response>
+      </Response>
+   </PreFlow>
+   <Flows>
+      <Flow name="WrongAccept">
+         <Description/>
+         <Request>
+            <Step>
+               <Name>SF-Proxy-Current-Flow-Name</Name>
+            </Step>
+            <Step>
+               <Name>cf-Fault-Unsupported-AcceptType</Name>
+            </Step>
+         </Request>
+         <Response/>
+         <Condition>(log.proxyVerb != "OPTIONS") and (!(log.Accept JavaRegex "(text\/xml)(;.*)|(.*;)(text\/xml)(;.*)|text\/xml|(.*;)(text\/xml)|(application\/xml)(;.*)|(.*;)(application\/xml)(;.*)|application\/xml|(.*;)(application\/xml)|(application\/json)(;.*)|(.*;)(application\/json)(;.*)|application\/json|(.*;)(application\/json)"))</Condition>
+      </Flow>
+      <Flow name="WrongContentType">
+         <Description/>
+         <Request>
+            <Step>
+               <Name>SF-Proxy-Current-Flow-Name</Name>
+            </Step>
+            <Step>
+               <Name>cf-Fault-Unsupported-ContentType</Name>
+            </Step>
+         </Request>
+         <Response/>
+         <Condition>(log.proxyVerb != "OPTIONS") and ((!(request.content = "")) and (!(request.content is null)) and !(log.Content-Type JavaRegex "(text\/xml)(;.*)|(.*;)(text\/xml)(;.*)|text\/xml|(.*;)(text\/xml)|(application\/xml)(;.*)|(.*;)(application\/xml)(;.*)|application\/xml|(.*;)(application\/xml)|(application\/json)(;.*)|(.*;)(application\/json)(;.*)|application\/json|(.*;)(application\/json)"))</Condition>
+      </Flow>
+      <Flow name="Control">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Control</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Control&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="Exchange">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Exchange</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Exchange&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="Execute">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Execute</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Execute&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="Initiate">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Initiate</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/Initiate&quot;) and (request.verb= &quot;POST&quot;)</Condition>
+      </Flow>
+      <Flow name="Retrieve">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Retrieve</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Retrieve&quot;) and (request.verb= &quot;GET&quot;)</Condition>
+      </Flow>
+      <Flow name="Request">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Request</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Request&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="Update">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-Update</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/Update&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="ControlTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-ControlTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Control&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="ExchangeTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-ExchangeTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Exchange&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="ExecuteTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-ExecuteTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Execute&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="InitiateTransactionAuthorization">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-InitiateTransactionAuthorization</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionAuthorization/{transactionauthorizationid}/Initiate&quot;) and (request.verb= &quot;POST&quot;)</Condition>
+      </Flow>
+      <Flow name="InitiateTransactionCapture">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-InitiateTransactionCapture</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionCapture/{transactioncaptureid}/Initiate&quot;) and (request.verb= &quot;POST&quot;)</Condition>
+      </Flow>
+      <Flow name="InitiateTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-InitiateTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Initiate&quot;) and (request.verb= &quot;POST&quot;)</Condition>
+      </Flow>
+      <Flow name="InitiateTransactionReversal">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-InitiateTransactionReversal</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionReversal/{transactionreversalid}/Initiate&quot;) and (request.verb= &quot;POST&quot;)</Condition>
+      </Flow>
+      <Flow name="RetrieveTransactionAuthorization">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-RetrieveTransactionAuthorization</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionAuthorization/{transactionauthorizationid}/Retrieve&quot;) and (request.verb= &quot;GET&quot;)</Condition>
+      </Flow>
+      <Flow name="RetrieveTransactionCapture">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-RetrieveTransactionCapture</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionCapture/{transactioncaptureid}/Retrieve&quot;) and (request.verb= &quot;GET&quot;)</Condition>
+      </Flow>
+      <Flow name="RetrieveTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-RetrieveTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Retrieve&quot;) and (request.verb= &quot;GET&quot;)</Condition>
+      </Flow>
+      <Flow name="RetrieveTransactionReversal">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-RetrieveTransactionReversal</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionReversal/{transactionreversalid}/Retrieve&quot;) and (request.verb= &quot;GET&quot;)</Condition>
+      </Flow>
+      <Flow name="UpdateTransactionAuthorization">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-UpdateTransactionAuthorization</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionAuthorization/{transactionauthorizationid}/Update&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="UpdateTransactionCapture">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-UpdateTransactionCapture</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionCapture/{transactioncaptureid}/Update&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="UpdateTransactionConsolidation">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-UpdateTransactionConsolidation</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionConsolidation/{transactionconsolidationid}/Update&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <Flow name="UpdateTransactionReversal">
+         <Request>
+            <Step>
+               <Name>cf-Assign-Routing-Variables-UpdateTransactionReversal</Name>
+            </Step>
+         </Request>
+         <Response>
+         </Response>
+         <Condition>(proxy.pathsuffix MatchesPath &quot;/CardCapture/{cardcaptureid}/TransactionReversal/{transactionreversalid}/Update&quot;) and (request.verb= &quot;PUT&quot;)</Condition>
+      </Flow>
+      <!-- CORS Preflight flow-->
+      <Flow name="CORS">
+         <Description/>
+         <Request>
+            <Step>
+               <Name>cf-getCORSDomainList</Name>
+            </Step>
+         </Request>
+         <Response>
+            <Step>
+               <Name>cf-CORSValidation</Name>
+            </Step>
+         </Response>
+         <Condition>(log.proxyVerb == "OPTIONS") and (log.origin != null)</Condition>
+      </Flow>
+      <Flow name="unknown-resource">
+         <Request>
+            <Step>
+               <Name>cf-Unknown-Resource</Name>
+            </Step>
+         </Request>
+         <Response/>
+      </Flow>
+   </Flows>
+   <PostFlow name="PostFlow">
+      <Request></Request>
+      <Response>
+         <Step>
+            <Name>SF-Log-Collector</Name>
+         </Step>
+      </Response>
+   </PostFlow>
+   <PostClientFlow>
+        <Request/>
+        <Response/>
+    </PostClientFlow>
+   <HTTPProxyConnection>
+      <BasePath>/BIAN-3/BIAN/CardCapture/11.0.0</BasePath>
+   </HTTPProxyConnection>
+   <RouteRule name="NoRoute">
+      <Condition>(request.verb == "OPTIONS")</Condition>
+   </RouteRule>
+   <RouteRule name="Area">
+      <Condition>(target.route.service = &quot;Area&quot;)</Condition>
+      <TargetEndpoint>Area</TargetEndpoint>
+   </RouteRule>
+</ProxyEndpoint>
