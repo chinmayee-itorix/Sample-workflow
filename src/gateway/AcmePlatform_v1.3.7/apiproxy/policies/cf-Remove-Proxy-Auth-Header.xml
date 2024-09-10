@@ -4,7 +4,7 @@
     <Properties/>
     <Remove>
         <Headers>
-            <Header name="Authorization"/>
+            <Header name="x-auth-key"/>
         </Headers>
     </Remove>
     <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
